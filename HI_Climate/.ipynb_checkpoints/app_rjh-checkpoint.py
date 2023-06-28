@@ -47,7 +47,9 @@ def home():
             f"Available Routes for Information:<br/>"
             f"/api/v1.0/precipitation/<br/>"
             f"/api/v1.0/stations<br/>"
-            f"/api/v1.0/temperature")
+            f"/api/v1.0/temperature<br/>"
+            f"/api/v1.0/<start><br/>"
+            f"/api/v1.0/<start>/<end>")
 
 
 @app.route("/api/v1.0/precipitation")
@@ -109,7 +111,7 @@ def temp_data():
     # Query the last 12 months of temperature observation data for USC00519281
     tdata = session.query(Measure.date, Measure.station, Measure.tobs).\
     filter(Measure.station == "USC00519281").\
-    filter(Measure.date > yr_prior_dt).\    
+    filter(Measure.date > yr_prior_dt).\
     order_by(Measure.date).all()
     session.close()
     
@@ -124,3 +126,10 @@ def temp_data():
 
     # Return as JSON
     return jsonify(yr_temps)
+
+@app.route("/api/v1.0/<start>")
+def start():
+    
+    
+@app.route("/api/v1.0/<start>/<end>")
+def start_end():
