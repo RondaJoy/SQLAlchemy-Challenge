@@ -46,17 +46,19 @@ def home():
             "<br/>"
             f"Available Routes for Information:<br/>"
             "<br/>"
-            f"Rain recorded at each weather station for most recent year: /api/v1.0/precipitation<br/>"
+            f"Precipitation Data (12 months):  <u>/api/v1.0/precipitation</u><br/>"
             "<br/>"
-            f"Details pertaining to each Hawaii weather station: /api/v1.0/stations<br/>"
+            f"Weather Stations:  <u>/api/v1.0/stations</u><br/>"
             "<br/>"
-            f"Temperatures recorded at USC00519281 station for recent year: /api/v1.0/temperature<br/>"
+            f"Temperature at USC00519281 station (12 months):  <u>/api/v1.0/temperature</u><br/>"
             "<br/>"
-            f"Temperatures statistics from a specified start date to most recent date*: /api/v1.0/mm-dd-yyyy<br/>"
-            f"*Please enter a start date between 1/1/1010 and 8/23/2017. Format as shown above.<br/>"
+            f"Temperature statistics (enter start date)*:  <u>/api/v1.0/mm-dd-yyyy</u><br/>"
+            f"*Please enter a start date between 1/1/1010 and 8/23/2017.<br/>"
+            f"*Format date as mm-dd-yyyy.<br/>"
             "<br/>"
-            f"Temperatures statistics for a range of dates**: /api/v1.0/mm-dd-yyyy/mm-dd-yyyy<br/>"
-            f"**Please enter the start date followed by the end date as formatted above.")
+            f"Temperature statistics for specified date range**:  <u>/api/v1.0/mm-dd-yyyy/mm-dd-yyyy</u><br/>"
+            f"**Please enter the start date followed by the end date.<br/>"
+            f"**Format both dates as mm-dd-yyyy.")
             
 
 @app.route("/api/v1.0/precipitation")
@@ -135,25 +137,34 @@ def temp_data():
     # Return as JSON
     return jsonify(yr_temps)
 
-@app.route("/api/v1.0/<start>")
-def start(start):
+@app.route("/api/v1.0/<start_date>")
+def temp_start(start_date):
     # Convert the start date string to a datetime object
-    start_date = dt.datetime.strptime(start, "%m-%d-%Y").date()
+    start_date = dt.datetime.strptime(start_date, "%m-%d-%Y").date()
 
     # Create a session from Python to the DB
     session = Session(engine)
 
     # Query the minimum, average, and maximum temperatures for dates greater than or equal to the start date
-    qtemp = session.query(func.min(Measure.tobs), func.avg(Measure.tobs), func.max(Measure.tobs)).\
-        filter(Measure.date >= start_date).all()
+    temps = [Measure.date,
+             func.min(Measure.tobs),
+             func.max(Measure.tobs),
+             func.avg(Measure.tobs)]
+    qtemps = session.query(*temps).filter(Measure.date >= start_date).group_by(Measure.date).all()
     session.close()
 
     # Create a dictionary to store the result data
-    temp_stats = {
-        "start_date": start_date.strftime("%m-%d-%Y"),
-        "TMIN": qtemp[0][0],
-        "TAVG": qtemp[0][1],
-        "TMAX": qtemp[0][2]}
+    temp_stats = []
+    for date, tmin, tmax, tavg in qtemps:
+        temp_dict = {
+            "start_date": start_date.strftime("%m-%d-%Y"),
+            "TMIN": tmin,
+            "TMAX": tmax,
+            "TAVG": tavg}
+        temp_stats.append(temp_dict)
+        
+        # Increment the date for the next iteration.
+        start_date += dt.timedelta(days=1)
 
     # Return the result as JSON
     return jsonify(temp_stats) 
