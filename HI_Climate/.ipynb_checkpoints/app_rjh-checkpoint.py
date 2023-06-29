@@ -45,12 +45,19 @@ def home():
     return (f"Welcome to the Hawaii Weather Place!<br/>"
             "<br/>"
             f"Available Routes for Information:<br/>"
-            f"/api/v1.0/precipitation/<br/>"
-            f"/api/v1.0/stations<br/>"
-            f"/api/v1.0/temperature<br/>"
-            f"/api/v1.0/<start><br/>"
-            f"/api/v1.0/<start>/<end>")
-
+            "<br/>"
+            f"Rain recorded at each weather station for most recent year: /api/v1.0/precipitation<br/>"
+            "<br/>"
+            f"Details pertaining to each Hawaii weather station: /api/v1.0/stations<br/>"
+            "<br/>"
+            f"Temperatures recorded at USC00519281 station for recent year: /api/v1.0/temperature<br/>"
+            "<br/>"
+            f"Temperatures statistics from a specified start date to most recent date*: /api/v1.0/mm-dd-yyyy<br/>"
+            f"*Please enter a start date between 1/1/1010 and 8/23/2017. Format as shown above.<br/>"
+            "<br/>"
+            f"Temperatures statistics for a range of dates**: /api/v1.0/mm-dd-yyyy/mm-dd-yyyy<br/>"
+            f"**Please enter the start date followed by the end date as formatted above.")
+            
 
 @app.route("/api/v1.0/precipitation")
 def rain():
@@ -109,6 +116,7 @@ def temp_data():
     session = Session(engine)
     
     # Query the last 12 months of temperature observation data for USC00519281
+    yr_prior_dt = dt.date(2016, 8, 23)
     tdata = session.query(Measure.date, Measure.station, Measure.tobs).\
     filter(Measure.station == "USC00519281").\
     filter(Measure.date > yr_prior_dt).\
@@ -128,8 +136,30 @@ def temp_data():
     return jsonify(yr_temps)
 
 @app.route("/api/v1.0/<start>")
-def start():
+def start(start):
+    # Convert the start date string to a datetime object
+    start_date = dt.datetime.strptime(start, "%m-%d-%Y").date()
+
+    # Create a session from Python to the DB
+    session = Session(engine)
+
+    # Query the minimum, average, and maximum temperatures for dates greater than or equal to the start date
+    qtemp = session.query(func.min(Measure.tobs), func.avg(Measure.tobs), func.max(Measure.tobs)).\
+        filter(Measure.date >= start_date).all()
+    session.close()
+
+    # Create a dictionary to store the result data
+    temp_stats = {
+        "start_date": start_date.strftime("%m-%d-%Y"),
+        "TMIN": qtemp[0][0],
+        "TAVG": qtemp[0][1],
+        "TMAX": qtemp[0][2]}
+
+    # Return the result as JSON
+    return jsonify(temp_stats) 
     
-    
-@app.route("/api/v1.0/<start>/<end>")
-def start_end():
+if __name__ == "__main__":
+    app.run(debug=True)
+ 
+#@app.route("/api/v1.0/<start>/<end>")
+#def start_end():
