@@ -57,7 +57,7 @@ def home():
             f"*Format date as mm-dd-yyyy.<br/>"
             "<br/>"
             f"Temperature statistics for specified date range**:  <u>/api/v1.0/mm-dd-yyyy/mm-dd-yyyy</u><br/>"
-            f"**Please enter the start date followed by the end date.<br/>"
+            f"**Please enter start AND end dates between 1/1/1010 and 8/23/2017.<br/>"
             f"**Format both dates as mm-dd-yyyy.")
             
 
