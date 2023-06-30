@@ -87,6 +87,7 @@ def rain():
     # Return as JSON
     return jsonify(yr_rain)
 
+
 @app.route("/api/v1.0/stations")
 def station_data():
     
@@ -110,6 +111,7 @@ def station_data():
        
     # Return as JSON
     return jsonify(all_stn)
+
 
 @app.route("/api/v1.0/temperature")
 def temp_data():
@@ -136,6 +138,7 @@ def temp_data():
 
     # Return as JSON
     return jsonify(yr_temps)
+
 
 @app.route("/api/v1.0/<start_date>")
 def temp_start(start_date):
@@ -168,9 +171,41 @@ def temp_start(start_date):
 
     # Return the result as JSON
     return jsonify(temp_stats) 
-    
+
+ 
+@app.route("/api/v1.0/<start_date>/<end_date>")
+def temp_end(start_date, end_date):
+    # Convert the start and end date strings to datetime objects
+    start_date = dt.datetime.strptime(start_date, "%m-%d-%Y").date()
+    end_date = dt.datetime.strptime(end_date, "%m-%d-%Y").date()
+
+    # Create a session from Python to the DB
+    session = Session(engine)
+
+    # Query the minimum, average, and maximum temperatures for dates between the start and end dates
+    temps = [Measure.date,
+             func.min(Measure.tobs),
+             func.max(Measure.tobs),
+             func.avg(Measure.tobs)]
+    qtemps = session.query(*temps).filter(Measure.date >= start_date, Measure.date <= end_date).group_by(Measure.date).all()
+    session.close()
+
+    # Create a dictionary to store the result data
+    temp_stats = []
+    for date, tmin, tmax, tavg in qtemps:
+        temp_dict = {
+            "start_date": start_date.strftime("%m-%d-%Y"),
+            "end_date": end_date.strftime("%m-%d-%Y"),
+            "TMIN": tmin,
+            "TMAX": tmax,
+            "TAVG": tavg}
+        temp_stats.append(temp_dict)
+        
+        # Increment the date for the next iteration.
+        start_date += dt.timedelta(days=1)
+
+    # Return the result as JSON
+    return jsonify(temp_stats)
+
 if __name__ == "__main__":
     app.run(debug=True)
- 
-#@app.route("/api/v1.0/<start>/<end>")
-#def start_end():
